@@ -1,16 +1,15 @@
 import { test as setup, expect } from "@playwright/test";
+import { LoginPage } from "../pages/LoginPage.js";
+import { Navbar } from "../pages/Navbar.js";
+import { data } from "../utilities/testData.js";
 
 const authFile = "playwright/.auth/user.json";
 
 setup("authentication", async ({ page }) => {
-	await page.goto("/login");
-	await page
-		.getByRole("textbox", { name: "Email" })
-		.fill(process.env.EVENTHUB_EMAIL);
-	await page
-		.getByRole("textbox", { name: "Password" })
-		.fill(process.env.EVENTHUB_PASSWORD);
-	await page.getByRole("button", { name: "Sign In" }).click();
-	await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+	const loginPage = new LoginPage(page);
+	await loginPage.navigateTo("/login");
+	const user = data.validCredentials;
+	await loginPage.login(user.email, user.password);
+	await expect(new Navbar(page).logoutBtn).toBeVisible();
 	await page.context().storageState({ path: authFile });
 });
