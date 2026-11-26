@@ -11,10 +11,6 @@ export class LoginPage {
 		this.invalidPasswordMessage = page.getByText("Password must be at least 6");
 	}
 
-	async navigateTo(url) {
-		await this.page.goto(url);
-	}
-
 	async login(email, password) {
 		await this.emailInput.fill(email);
 		await this.passwordInput.fill(password);

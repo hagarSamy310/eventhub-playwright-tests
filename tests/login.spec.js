@@ -1,21 +1,21 @@
 import { test, expect } from "@playwright/test";
-import { data } from "../utilities/testData.js";
+import { data } from "../utils/testData.js";
 import { LoginPage } from "../pages/LoginPage.js";
-import { Navbar } from "../pages/Navbar.js";
+import { Navbar } from "../components/Navbar.js";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
 let loginPage;
-const { validCredentials, invalidCredentials } = data;
+const { urls, validCredentials, invalidCredentials } = data;
 
 test.beforeEach(async ({ page }) => {
 	loginPage = new LoginPage(page);
-	await loginPage.navigateTo("/login");
+	await page.goto(urls.login);
 });
 
 test("valid user can log in", async ({ page }) => {
 	await loginPage.login(validCredentials.email, validCredentials.password);
-	await expect(page).toHaveURL("/");
+	await expect(page).toHaveURL(urls.home);
 	const nav = new Navbar(page);
 	await expect(nav.logoutBtn).toBeVisible();
 });
@@ -26,7 +26,7 @@ test.describe("invalid login attempts", () => {
 			validCredentials.email,
 			invalidCredentials.wrongPassword,
 		);
-		await expect(page).toHaveURL("/login");
+		await expect(page).toHaveURL(urls.login);
 		await expect(loginPage.invalidCredentialsMessage).toBeVisible();
 	});
 
@@ -35,7 +35,7 @@ test.describe("invalid login attempts", () => {
 			invalidCredentials.unknownEmail,
 			validCredentials.password,
 		);
-		await expect(page).toHaveURL("/login");
+		await expect(page).toHaveURL(urls.login);
 		await expect(loginPage.invalidCredentialsMessage).toBeVisible();
 	});
 });
@@ -43,7 +43,7 @@ test.describe("invalid login attempts", () => {
 test.describe("form validation", () => {
 	test("empty fields show validation errors", async ({ page }) => {
 		await loginPage.loginBtn.click();
-		await expect(page).toHaveURL("/login");
+		await expect(page).toHaveURL(urls.login);
 		await expect(loginPage.invalidEmailMessage).toBeVisible();
 		await expect(loginPage.invalidPasswordMessage).toBeVisible();
 	});

@@ -1,7 +1,18 @@
 // @ts-check
 import { defineConfig, devices } from "@playwright/test";
+import { data } from "./utils/testData.js";
 import dotenv from "dotenv";
+
 dotenv.config();
+// Fail early with a clear message if required env variables are missing
+const required = ["BASE_URL", "EVENTHUB_EMAIL", "EVENTHUB_PASSWORD"];
+const missing = required.filter((name) => !process.env[name]);
+
+if (missing.length > 0) {
+	throw new Error(
+		`Missing environment variables: ${missing.join(", ")}. Copy .env.example to .env and fill in the values.`,
+	);
+}
 
 export default defineConfig({
 	testDir: "./tests",
@@ -22,7 +33,7 @@ export default defineConfig({
 			name: "chromium",
 			use: {
 				...devices["Desktop Chrome"],
-				storageState: "playwright/.auth/user.json",
+				storageState: data.authFilePath,
 			},
 			dependencies: ["setup"],
 		},
@@ -31,7 +42,7 @@ export default defineConfig({
 			name: "firefox",
 			use: {
 				...devices["Desktop Firefox"],
-				storageState: "playwright/.auth/user.json",
+				storageState: data.authFilePath,
 			},
 			dependencies: ["setup"],
 		},
@@ -40,7 +51,7 @@ export default defineConfig({
 			name: "webkit",
 			use: {
 				...devices["Desktop Safari"],
-				storageState: "playwright/.auth/user.json",
+				storageState: data.authFilePath,
 			},
 			dependencies: ["setup"],
 		},
