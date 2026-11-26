@@ -1,57 +1,46 @@
 import { test, expect } from "@playwright/test";
+import { data } from "../utils/testData.js";
+import { MyBookingsPage } from "../pages/MyBookingsPage.js";
+import { EventsPage } from "../pages/EventsPage.js";
+import { EventDetailsPage } from "../pages/EventDetailsPage.js";
 
-// Test data
-const EVENT = { title: "World Tech Summit", total: "$1,500" };
-const CUSTOMER = {
-	name: "Hagar",
-	email: "hagar@gmail.com",
-	phone: "0123456789",
-};
+const { urls, events, customers } = data;
+let myBookingsPage;
 
 test.describe("Booking flow", () => {
 	test.beforeEach("clear My Bookings list", async ({ page }) => {
-		await page.goto("/bookings");
+		myBookingsPage = new MyBookingsPage(page);
+		await page.goto(urls.bookings);
+
 		page.once("dialog", (dialog) => dialog.accept());
-		await page.getByRole("button", { name: "Clear all bookings" }).click();
-		await expect(
-			page.getByRole("heading", { name: "No bookings yet" }),
-		).toBeVisible();
+
+		await myBookingsPage.clearAllBookings();
+		await expect(myBookingsPage.noBookingsHeading).toBeVisible();
 	});
 
 	test("user can book an event and see it in My Bookings", async ({ page }) => {
-		await page.goto("/events");
-		await page
-			.getByRole("article")
-			.filter({ hasText: EVENT.title })
-			.getByRole("link", { name: "Book Now" })
-			.click();
+		const eventsPage = new EventsPage(page);
+		const eventDetailsPage = new EventDetailsPage(page);
+
+		await page.goto(urls.events);
+		await eventsPage.bookEvent(events[1].title);
+		await expect(page).toHaveURL(urls.eventDetails);
 
 		// Fill in and submit the booking form
-		await page.getByRole("textbox", { name: "Full Name*" }).fill(CUSTOMER.name);
-		await page.getByRole("textbox", { name: "Email*" }).fill(CUSTOMER.email);
-		await page
-			.getByRole("textbox", { name: "Phone Number*" })
-			.fill(CUSTOMER.phone);
-		await page.getByRole("button", { name: "Confirm Booking" }).click();
-
+		await eventDetailsPage.submitBooking(customers[0]);
 		// The confirmation shows what was entered
+		await expect(eventDetailsPage.confirmationMessage).toBeVisible();
 		await expect(
-			page.getByRole("heading", { name: /Booking Confirmed/ }),
+			eventDetailsPage.customerName(customers[0].name),
 		).toBeVisible();
-		await expect(page.getByText(`Customer${CUSTOMER.name}`)).toBeVisible();
-		await expect(page.getByText("Tickets1")).toBeVisible();
-		await expect(page.getByText("Total$")).toHaveText(`Total${EVENT.total}`);
-
-		// Read the generated booking ref
-		const ref = (
-			await page.getByText(/^[A-Z]-[A-Z0-9]{6}$/).textContent()
-		).trim();
+		await expect(eventDetailsPage.total).toHaveText(`Total${events[1].price}`);
 
 		// The saved booking appears in My Bookings with the same ref
-		await page.getByRole("button", { name: "View My Bookings" }).click();
-		const bookedEvent = page
-			.getByTestId("booking-card")
-			.filter({ hasText: ref });
-		await expect(bookedEvent).toContainText(EVENT.title);
+		const ref = await eventDetailsPage.getBookingRef();
+		await eventDetailsPage.goToMyBookings();
+
+		await expect(myBookingsPage.bookedEvent(ref)).toContainText(
+			events[1].title,
+		);
 	});
 });
